@@ -81,18 +81,24 @@ st.header("2. Regime detection")
 c1, c2 = st.columns([2, 1])
 with c1:
     st.plotly_chart(px.scatter(selected, x="Date", y="NIFTY50", color="Regime", color_discrete_map=COLORS, title="Market-regime timeline for selected range", opacity=.8), use_container_width=True)
+    st.caption("Each dot is one trading day. Its colour is the K-Means market condition assigned from return, volatility, momentum, VIX, and drawdown. Clusters describe historical similarity; they are not price forecasts.")
 with c2:
     st.dataframe(summary.style.format({"Percentage_of_Time":"{:.1f}%", "Average_Volatility":"{:.2%}", "Average_VIX":"{:.2f}"}), hide_index=True, use_container_width=True)
+    st.caption("This table summarises only the selected period. A larger average volatility or VIX generally indicates more uncertain market conditions.")
 
 st.header("3. Historical analysis")
 subset = selected
 left, right = st.columns(2)
-left.plotly_chart(px.line(subset, x="Date", y="NIFTY50", title="NIFTY 50 historical price", markers=len(subset) < 30), use_container_width=True)
-right.plotly_chart(px.line(subset, x="Date", y="VIX", title="India VIX historical level", markers=len(subset) < 30), use_container_width=True)
+with left:
+    st.plotly_chart(px.line(subset, x="Date", y="NIFTY50", title="NIFTY 50 historical price", markers=len(subset) < 30), use_container_width=True)
+    st.caption("NIFTY 50 represents a broad basket of major Indian companies. Rising values show historical index gains; falling values show historical declines. It does not by itself measure risk.")
+with right:
+    st.plotly_chart(px.line(subset, x="Date", y="VIX", title="India VIX historical level", markers=len(subset) < 30), use_container_width=True)
+    st.caption("India VIX is commonly interpreted as an uncertainty indicator. Higher values indicate that the market expected larger near-term price swings; it is not a direction forecast.")
 transition = window_transition(selected["Regime"])
 fig = px.imshow(transition, text_auto=".1%", color_continuous_scale="Blues", title="Chronological regime transition probabilities", labels={"x":"Next regime", "y":"Current regime", "color":"Probability"})
 st.plotly_chart(fig, use_container_width=True)
-st.caption("Each row shows where observed transitions from that current regime went next. Historical probabilities are not guarantees.")
+st.caption("Each row shows where observed transitions from that current regime went next. For example, 15% from Low to Medium means 15% of observed Low-regime days were followed by a Medium-regime day. Historical probabilities are not guarantees.")
 st.caption("The date controls above recalculate the timeline, regime distribution, transition matrix, and portfolio metrics for the selected period.")
 
 st.header("4. Portfolio risk")
@@ -105,19 +111,29 @@ else:
         st.warning("Choose a wider date range to calculate portfolio risk metrics.")
     portfolio, risk, comparison = selected_portfolio_metrics(portfolio)
     metrics = st.columns(4)
-    for col, label, value in zip(metrics, ["Annualised volatility", "Sharpe ratio", "VaR 95%", "CVaR 95%"], [f"{risk.Annualized_Volatility:.2%}", f"{risk.Sharpe_Ratio:.2f}", f"{risk.VaR_95:.2%}", f"{risk.CVaR_95:.2%}"]): col.metric(label, value)
+    for col, label, value in zip(metrics, ["Annualised volatility", "Sharpe ratio", "VaR 95%", "CVaR 95%"], [f"{risk['Annualized_Volatility']:.2%}", f"{risk['Sharpe_Ratio']:.2f}", f"{risk['VaR_95']:.2%}", f"{risk['CVaR_95']:.2%}"]): col.metric(label, value)
     a, b = st.columns(2)
-    a.plotly_chart(px.line(portfolio, x="Date", y="Wealth", title="Equal-weighted portfolio wealth"), use_container_width=True)
-    b.plotly_chart(px.line(portfolio, x="Date", y="Drawdown", title="Portfolio drawdown"), use_container_width=True)
+    with a:
+        st.plotly_chart(px.line(portfolio, x="Date", y="Wealth", title="Equal-weighted portfolio wealth"), use_container_width=True)
+        st.caption("This begins at 1.0 on the selected start date and compounds the portfolio's daily returns. It illustrates historical growth or loss of one rupee invested, before costs and taxes.")
+    with b:
+        st.plotly_chart(px.line(portfolio, x="Date", y="Drawdown", title="Portfolio drawdown"), use_container_width=True)
+        st.caption("Drawdown is the percentage fall from the portfolio's previous peak within this selected range. More negative values show a deeper historical decline.")
     st.plotly_chart(px.bar(comparison, x="Regime", y="Daily_Volatility", color="Regime", color_discrete_map=COLORS, title="Conditional daily volatility by regime"), use_container_width=True)
+    st.caption("This compares the spread of portfolio daily returns on days assigned to each market regime. It describes risk conditional on historical labels, not the return of a trading strategy.")
     st.caption("Equal weights, 252 trading days/year, and zero risk-free rate are assumed; costs, taxes and slippage are excluded. Regime-wise values are conditional descriptions, not a continuous trading strategy.")
 
 st.header("5. Model evaluation")
 evaluation = tables["model_evaluation"]
 e1, e2 = st.columns(2)
-e1.plotly_chart(px.line(evaluation, x="K", y="Inertia", markers=True, title="Elbow comparison"), use_container_width=True)
-e2.plotly_chart(px.bar(evaluation, x="K", y="Train_Silhouette", title="Training silhouette comparison"), use_container_width=True)
+with e1:
+    st.plotly_chart(px.line(evaluation, x="K", y="Inertia", markers=True, title="Elbow comparison"), use_container_width=True)
+    st.caption("Inertia measures within-cluster variation. It always falls as more clusters are added, so the useful choice is where further reductions start becoming modest—the visual 'elbow'.")
+with e2:
+    st.plotly_chart(px.bar(evaluation, x="K", y="Train_Silhouette", title="Training silhouette comparison"), use_container_width=True)
+    st.caption("A higher silhouette score means the training clusters are more compact and distinct. It measures grouping quality, not the ability to predict future prices.")
 st.plotly_chart(px.scatter(results, x="PC1", y="PC2", color="Regime", color_discrete_map=COLORS, symbol="Dataset_Partition", title="PCA visualisation of training-fitted regimes"), use_container_width=True)
+st.caption("PCA compresses the five scaled features into two display axes so separation can be inspected visually. PCA is only used for this chart; K-Means was trained on all five scaled features.")
 st.dataframe(tables["cluster_profiles"], hide_index=True, use_container_width=True)
 k3 = evaluation[evaluation.K.eq(3)].iloc[0]
 st.info(f"K-Means groups similar scaled observations; it does not predict future prices. Scaling stops VIX or index-level features from dominating distances. PCA only projects the fitted feature space for display (PC1+PC2 explain {k3.PCA_Explained_Variance_PC1_PC2:.1%}). Silhouette measures cluster separation—not prediction accuracy. K=3 is retained for interpretable low/medium/high risk levels even if another K scores higher.")
