@@ -45,6 +45,8 @@ python train_model.py
 streamlit run app.py
 ```
 
+The Streamlit app will launch on `http://localhost:8501` and display the interactive dashboard with real-time regime detection and portfolio analysis.
+
 If stock downloading is unavailable, build and demonstrate the regime-analysis portion without fabricating portfolio results:
 
 ```powershell
@@ -55,11 +57,16 @@ To use the notebook, start Jupyter in this directory and open `Market_Risk_Intel
 
 ## Dashboard sections
 
-1. Market overview with latest saved historical observation and plain-language condition.
-2. Regime timeline, distribution, volatility, and VIX summaries.
-3. Date-filtered NIFTY/VIX history, transition heatmap, and average duration.
-4. Portfolio wealth, drawdown, and risk comparison when stock data is available.
-5. Elbow/silhouette charts, PCA visualisation, profiles, and methodology explanation.
+1. **Market overview** — Latest saved historical observation with key metrics (NIFTY 50, India VIX, daily return, 20-day volatility) and color-coded regime status.
+2. **Regime detection** — Timeline showing regime history, distribution table with regime statistics, average volatility, and VIX levels.
+3. **Historical analysis** — Date-range filter, NIFTY/VIX price charts with optional markers for sparse data, regime transition heatmap, and average consecutive days per regime.
+4. **Portfolio risk** — Equal-weighted ten-stock portfolio performance including wealth accumulation, drawdown visualization, conditional volatility by regime, and key risk metrics (annualised volatility, Sharpe ratio, VaR/CVaR 95%).
+5. **Model evaluation** — Elbow and silhouette comparison charts, PCA visualization of scaled feature space, cluster profiles, and methodology notes.
+
+## Recent updates
+
+- **Plotly visualization refinements** — Optimized chart proportions and layout for better readability and responsive design
+- **Enhanced highlighting** — Added contextual captions and color-coded regime indicators below charts for improved interpretation
 
 ## Limitations and future improvements
 
